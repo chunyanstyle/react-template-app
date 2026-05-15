@@ -1,18 +1,17 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { z } from 'zod'
 
-export const Route = createFileRoute('/')({
-  component: App,
+/** 与 translate 页一致，便于 `/` 或 `/hc-translate/?text=xxx` 重定向时保留查询参数 */
+const indexSearchSchema = z.object({
+  text: z.string().optional(),
 })
 
-function App() {
-  return (
-    <div className="grid h-screen place-items-center">
-      <div className="flex flex-col items-start gap-2">
-        <pre className="rounded-md bg-neutral-100 px-2 py-0.5">pnpm dlx shadcn@latest init</pre>
-        <pre className="rounded-md bg-neutral-100 px-2 py-0.5">
-          pnpm dlx shadcn@latest add @coss/button @coss/colors-neutral
-        </pre>
-      </div>
-    </div>
-  )
-}
+export const Route = createFileRoute('/')({
+  validateSearch: indexSearchSchema,
+  beforeLoad: ({ search }) => {
+    throw redirect({
+      to: '/translate',
+      search: { text: search.text },
+    })
+  },
+})
