@@ -87,7 +87,7 @@ export function TranslationView({
       toast.success("已复制到剪贴板")
       onCopy?.()
     } catch {
-      toast.error("复制失败，请检查浏览器权限或非安全环境")
+      toast.error("复制失败")
     }
   }, [translatedText, onCopy])
 
