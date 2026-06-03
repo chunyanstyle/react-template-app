@@ -1,22 +1,37 @@
 import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 import {
   TranslationView,
   type TargetLangValue,
 } from '@/features/translation/components'
+import {
+  getAuthorizationHeaders,
+  setAccessToken,
+} from '@/lib/access-token'
 
 /**
  * 校验并解析查询串：应用内路径 `/translate?text=xxx`（部署后完整 URL 含 Vite `base`，如 `/hc-translate/translate?text=xxx`）
- * 生成链接时请对正文使用 encodeURIComponent，避免 &、#、中文等破坏 URL。
+ * 可选 `auth` 为 access_token，落库后从地址栏移除。生成链接时请对正文使用 encodeURIComponent。
  */
 const translateSearchSchema = z.object({
   text: z.string().optional(),
+  auth: z.string().optional(),
 })
 
 export const Route = createFileRoute('/translate')({
   validateSearch: translateSearchSchema,
+  beforeLoad: ({ search }) => {
+    if (!search.auth) return
+
+    setAccessToken(search.auth)
+    throw redirect({
+      to: '/translate',
+      search: { text: search.text },
+      replace: true,
+    })
+  },
   component: RouteComponent,
 })
 
@@ -32,9 +47,11 @@ async function translateText(text: string, targetLang: TargetLangValue) {
   formData.set('text', text)
   formData.set('target_lang', targetLang)
 
+  const authHeaders = getAuthorizationHeaders()
   const response = await fetch('/dwt-tl/translate/text', {
     method: 'POST',
     body: formData,
+    ...(authHeaders ? { headers: authHeaders } : {}),
   })
 
   if (!response.ok) {
